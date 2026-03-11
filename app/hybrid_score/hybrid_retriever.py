@@ -3,7 +3,7 @@ from langchain_core.documents import Document
 import numpy as np
 import logging
 from app.config.agent_log import log_event
-
+from qdrant_client.models import Filter,FieldCondition,MatchValue
 logger = logging.getLogger(__name__)
 
 
@@ -23,7 +23,8 @@ class HybridRetriever:
             top_k: int = 3,
             vector_k: int = 3,
             min_hybrid_score: float | None = None,
-            top1_gap: float = 0.15
+            top1_gap: float = 0.15,
+            doc_id:str=''
 
     ) -> None:
         self.bm25 = bm25_retriever
@@ -34,6 +35,7 @@ class HybridRetriever:
         self.vector_k = vector_k
         self.min_hybrid_score = min_hybrid_score
         self.top1_gap = top1_gap
+        self.doc_id=doc_id
 
     def __call__(self, query: str):
         return self.retrieve(query)
@@ -80,7 +82,15 @@ class HybridRetriever:
 
         docs = self.vectorstore.similarity_search_with_relevance_scores(
             query,
-            k=self.vector_k
+            k=self.vector_k,
+            filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="metadata.doc_id",
+                        match=MatchValue(value="hr_policy")
+                    )
+                ]
+            )
         )
         logger.debug(f"[HybridRetriever] Vector docs={len(docs)}")
         return docs

@@ -3,7 +3,6 @@ from app.rag.fallback_policy import FALLBACK_POLICY
 from app.router.intent_router import IntentRouter
 from app.core.llm import get_model
 from app.rag.answer import rag_answer
-from app.rag.scored_retriever import retriever_with_threshold
 from app.prompts.builder import build_rag_prompt
 from app.prompts.system.policy import POLICY_SYSTEM_PROMPT
 from app.prompts.rag.rag_prompt import RAG_TASK_PROMPT
@@ -97,27 +96,3 @@ def build_rag_chain(docs, history):
     )
 
     return rag_chain
-
-
-def answer_with_routing(question: str, router: IntentRouter):
-    # 1️⃣ 主路由
-    primary = router.route(question)
-    collections_to_try = [primary] + FALLBACK_POLICY.get(primary, [])
-
-    for collection in collections_to_try:
-        docs, scored = retriever_with_threshold(
-            question,
-            collection_name=collection,
-            top_k=3,
-            score_threshold=0.6
-        )
-        # 🔍 日志（非常有用）
-        for doc, score in scored:
-            print(f"[Score] {collection} score={score:.3f}")
-
-        if docs:
-            print(f"[RAG] hit collection={collection}")
-            return rag_answer(question, docs)
-
-    # 2️⃣ 所有 fallback 都失败
-    return "暂时没有查到相关信息，请联系人工客服。"

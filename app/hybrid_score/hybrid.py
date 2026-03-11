@@ -8,7 +8,8 @@ def build_hybrid_retriever(
         vector_weight=0.6,
         top_k=3,
         min_hybrid_score=0.6,
-        top1_gap=0.15
+        top1_gap=0.15,
+        doc_name=''
 ):
     return HybridRetriever(
         bm25_retriever=bm25_retriever,
@@ -17,5 +18,6 @@ def build_hybrid_retriever(
         w_vector=vector_weight,
         top_k=top_k,
         min_hybrid_score=min_hybrid_score,
-        top1_gap=top1_gap
+        top1_gap=top1_gap,
+        doc_id=doc_name
     )
