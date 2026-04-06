@@ -3,6 +3,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE_DIR / "data"
 
+RAG_DOC_PATH = Path(__file__).resolve().parent / 'data'
+
 COLLECTION_REGISTRY = {
     'hr_kb': {
         'path': DATA_PATH / 'hr_policy.txt',
@@ -12,8 +14,10 @@ COLLECTION_REGISTRY = {
     },
     'tech_kb': {
         'path': DATA_PATH / 'tech_support.txt'
+    },
+    'rag_docs': {
+        'path': RAG_DOC_PATH
     }
-
 }
 
 

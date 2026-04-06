@@ -4,8 +4,8 @@ class ToolManager:
         self.registry = registry
 
         self.role_mapping = {
-            "employee": ["query_ticket", 'query_employee_info'],
-            "finance": ["calculate_salary"],
+            "employee": ["query_order", 'query_employee_info', 'rag_search'],
+            "finance": ["calculate_salary", 'rag_search'],
             "admin": self.registry.list_names()
         }
 

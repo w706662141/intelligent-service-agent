@@ -22,7 +22,7 @@ def prepare_chunks(file_url: str):
     return chunks
 
 
-def get_bm25_retriever(collection_name: str, chunks, k: int = 3):
+def get_bm25_retriever(chunks, k: int = 3, collection_name: str = 'default'):
     """
     BM25 进程级缓存
     """

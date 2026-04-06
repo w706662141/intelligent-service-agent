@@ -1,4 +1,5 @@
 from typing import List, Dict
+from app.prompts.rag.rag_prompt import RAG_CONTEXT_REWRITER_PROMPT
 
 
 def format_history_for_llm(history: List[Dict]):
@@ -36,3 +37,21 @@ def enhance_question_with_memory(
     当前用户问题：
     {question}
     """.strip()
+
+
+class ContextRewriter:
+    def __init__(self, llm):
+        self.llm = llm
+        self.prompt = RAG_CONTEXT_REWRITER_PROMPT
+
+    def rewrite(self, question, messages):
+        history = "\n".join([
+                                m.content for m in messages if hasattr(m, "content")
+                            ][-4:])
+
+        chain = self.prompt | self.llm
+
+        return chain.invoke({
+            "history": history,
+            "question": question
+        }).content.strip()

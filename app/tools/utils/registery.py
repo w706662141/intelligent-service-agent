@@ -1,6 +1,7 @@
 from app.tools.employee_tool import query_employee_info
 from app.tools.salary_tool import calculate_salary
-from app.tools.ticket_tool import query_ticket
+from app.tools.order_tool import query_order
+from app.tools.rag_search_tool import rag_search
 
 
 class ToolRegistry:
@@ -23,8 +24,8 @@ class ToolRegistry:
 
 def create_default_registry():
     registry = ToolRegistry()
-    registry.register(query_ticket)
+    registry.register(query_order)
     registry.register(calculate_salary)
     registry.register(query_employee_info)
-
+    registry.register(rag_search)
     return registry

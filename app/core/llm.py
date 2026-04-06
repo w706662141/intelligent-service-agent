@@ -3,8 +3,6 @@ from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 import os
 
-from app.tools.salary_tool import calculate_salary
-
 _model = None
 _validator_model = None
 load_dotenv()

@@ -1,5 +1,5 @@
 from app.query.QueryRewriteResult import QueryRewriteResult
-# from app.query.prompts import QUERY_REWRITE_PROMPT
+
 from app.prompts.task.rewrite import QUERY_REWRITE_PROMPT
 
 
@@ -8,7 +8,7 @@ class QueryRewriter:
         self.llm = llm
 
     def rewrite(self, question: str) -> QueryRewriteResult:
-        prompt = QUERY_REWRITE_PROMPT.format(question=question)
+        prompt = QUERY_REWRITE_PROMPT.format_messages(question=question)
 
         try:
             resp = self.llm.invoke(prompt)

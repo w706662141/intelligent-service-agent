@@ -64,7 +64,7 @@ class QdrantChunkLoader:
 
                 if not text:
                     continue
-                meta=payload.get('metadata',{})
+                meta = payload.get('metadata', {})
                 documents.append(
                     Document(
                         page_content=text,

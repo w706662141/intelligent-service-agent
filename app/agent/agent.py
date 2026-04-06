@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from app.core.llm import get_model
 from app.prompts.task.classifier import classify_question
-from app.agent.retrievers import get_retriever_by_category
+from app.agent.retrievers import get_retriever_by_category, get_retriever
 from app.query.query_rewriter import QueryRewriter
 from app.rag.chain import build_rag_chain
 from app.config.agent_log import log_event
@@ -60,7 +60,8 @@ class MultiKBCustomerSupportAgent:
             reason=rewrite_reason
         )
 
-        retriever = get_retriever_by_category(category)
+        # retriever = get_retriever_by_category(category)
+        retriever = get_retriever()
         docs = retriever.retrieve(rewrite_question)
 
         if docs:
@@ -80,7 +81,7 @@ class MultiKBCustomerSupportAgent:
             )
 
             compress_docs = compress_document(docs[0], rewrite_question, 20)
-
+            print('compress_docs', compress_docs)
             log_event(
                 request_id='1',
                 stage='compressor',
@@ -120,31 +121,3 @@ class MultiKBCustomerSupportAgent:
             return answer
         else:
             return self.llm.invoke(question).content
-
-
-def need_retrieval(question: str) -> bool:
-    """
-    判断是否需要查询知识库
-    """
-    prompt = ChatPromptTemplate.from_template(
-        """
-        你是一个企业客服问题分类器。
-        请判断用户问题是否需要查询内部知识库。
-        
-        如果是业务 / 产品 / 流程相关问题，回答 YES
-        如果是闲聊 / 常识 / 问候，回答 NO
-        
-        用户问题：
-        {question}
-        
-        只回答 YES 或 NO
-        """
-    )
-
-    llm = get_model()
-
-    resp = llm.invoke(
-        prompt.format_messages(question=question)
-    ).content.strip().upper()
-
-    return resp == 'YES'

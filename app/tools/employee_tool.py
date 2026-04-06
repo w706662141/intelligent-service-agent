@@ -1,12 +1,8 @@
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from app.schemas.result import ToolResult, ErrorType
-from app.db.database import get_connection
-
-FAKE_EMPLOYEE_DB = {
-    "E001": {"name": "张三", "department": "HR", "role": "经理"},
-    "E002": {"name": "李四", "department": "IT", "role": "工程师"},
-}
+from app.db.database import get_mysql_connection
+from sqlalchemy import text
 
 
 class EmployeeInput(BaseModel):
@@ -16,16 +12,30 @@ class EmployeeInput(BaseModel):
 
 @tool(args_schema=EmployeeInput)
 def query_employee_info(employee_id: str) -> dict:
-    """员工信息查询"""
+    """
+    用于查询结构化数据（数据库）。
 
-    with get_connection() as conn:
-        cursor = conn.cursor()
+    适用于：
+    - 查询员工信息（姓名、部门、薪资）
+    - 查询订单、金额、统计数据
+    - 精确字段查询
 
-        cursor.execute("SELECT employee_id,name,department,role FROM employees WHERE employee_id=?",
-                       (employee_id,)
-                       )
+    不适用于：
+    - 制度说明
+    - 流程说明
+    - FAQ问题
+    """
 
-        row = cursor.fetchone()
+    sql = text("""
+    SELECT employee_id,name,department_id,role,hire_date
+    FROM employee 
+    WHERE
+    employee_id= :employee_id
+    """)
+    with get_mysql_connection() as conn:
+        result = conn.execute(sql, {'employee_id': employee_id})
+
+        row = result.mappings().fetchone()
 
     if not row:
         return ToolResult(
@@ -38,5 +48,5 @@ def query_employee_info(employee_id: str) -> dict:
         success=True,
         error_type=ErrorType.NONE,
         message="查询成功",
-        data=row
+        data=dict(row)
     ).to_dict()
