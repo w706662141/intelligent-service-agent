@@ -7,7 +7,7 @@ from app.hybrid_score.hybrid import build_hybrid_retriever
 def get_rag_collection_retriever():
     vector = load_qdrant_vectorstore('rag_docs')
     RAG_COLLECTION_CHUNKS = get_rag_collection_chunks()
-    bm25 = get_bm25_retriever(RAG_COLLECTION_CHUNKS, 3, collection_name='rag_docs')
+    bm25 = get_bm25_retriever(RAG_COLLECTION_CHUNKS, k=3, collection_name='rag_docs')
 
     return build_hybrid_retriever(
         bm25_retriever=bm25,
@@ -41,7 +41,7 @@ def get_tech_retriever():
     # vector = load_chroma_vectorstore("tech_kb")
     vector = load_qdrant_vectorstore("rag_docs")
     TECH_CHUNKS = get_tech_chunks()
-    bm25 = get_bm25_retriever('tech_kb', TECH_CHUNKS, k=3)
+    bm25 = get_bm25_retriever(TECH_CHUNKS, k=3, collection_name='tech_kb')
 
     return build_hybrid_retriever(
         bm25_retriever=bm25,

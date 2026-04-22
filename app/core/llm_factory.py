@@ -1,4 +1,4 @@
-from app.core.llm import get_validator_model
+from app.core.llm import get_validator_model,get_router_model,get_compress_model
 from langchain_core.prompts import ChatPromptTemplate
 
 
@@ -17,3 +17,9 @@ def summarize_llm():
     chain = prompt | base_model
 
     return chain
+
+
+def router_llm():
+    base_model = get_router_model()
+
+    return base_model

@@ -23,10 +23,9 @@ class Planner:
         )
 
         response = self.llm.invoke(prompt)
-
+        print('plan_response', response)
         try:
             steps_data = json.loads(response.content)
             return Plan(steps=steps_data)
         except Exception as e:
             raise ValueError(f"Plan解析失败: {e}")
-

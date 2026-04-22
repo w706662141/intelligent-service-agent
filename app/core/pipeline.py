@@ -23,27 +23,45 @@ class Pipeline:
             - 成功时不要再次调用工具
             - 非可重试错误不要再次调用
             """
-        self.messages = [
-            SystemMessage(content=self.system_content),
+        # self.messages = [
+        #     SystemMessage(content=self.system_content),
+        # ]
+
+    def run(self, question: str, context: dict = None, history: str = None):
+
+        messages = [
+            SystemMessage(content=self.system_content)
         ]
 
-    def run(self, question: str):
+        if history:
+            messages.append(
+                SystemMessage(content=f"以下是历史对话：\n{history}")
+            )
 
-        self.messages.append(HumanMessage(content=question))
+        if context:
+            context_str = json.dumps(context, ensure_ascii=False, indent=2)
+            question = f"""
+            任务:
+            {question}
+            已有信息:
+            {context_str}
+            """
+
+        messages.append(HumanMessage(content=question))
 
         max_steps = 3
         called_signatures = set()
 
-        print('message', self.messages)
+        print('message', messages)
 
         for _ in range(max_steps):
 
-            response: AIMessage = self.llm.invoke(self.messages)
+            response: AIMessage = self.llm.invoke(messages)
             print('response', response)
             if not response.tool_calls:
                 return response.content
 
-            self.messages.append(response)
+            messages.append(response)
 
             tool_results = []
             has_retryable_error = False
@@ -62,7 +80,7 @@ class Pipeline:
                     }
                 called_signatures.add(sig)
 
-                result = self.executor.execute(tool_call, messages=self.messages)
+                result = self.executor.execute(tool_call, messages=messages)
 
                 print('result', result)
                 tool_results.append((tool_call, result))
@@ -89,7 +107,7 @@ class Pipeline:
                     if isinstance(data, list):
                         data = '\n'.join(data)
 
-                    self.messages.append(
+                    messages.append(
                         ToolMessage(
                             content=json.dumps(data, ensure_ascii=False),
                             tool_call_id=tool_results[0][0]['id']
@@ -100,7 +118,7 @@ class Pipeline:
 
             if has_retryable_error:
                 for tool_call, result in tool_results:
-                    self.messages.append(
+                    messages.append(
                         ToolMessage(
                             content=json.dumps(result, ensure_ascii=False),
                             tool_call_id=tool_call['id']
@@ -109,14 +127,14 @@ class Pipeline:
                 continue
 
             for tool_call, result in tool_results:
-                self.messages.append(
+                messages.append(
                     ToolMessage(
                         content=json.dumps(result, ensure_ascii=False, cls=EnhancedJSONEncoder),
                         tool_call_id=tool_call['id']
                     )
                 )
 
-            final_response = self.summarize_llm.invoke(self.messages)
+            final_response = self.summarize_llm.invoke(messages)
 
             return final_response.content
 

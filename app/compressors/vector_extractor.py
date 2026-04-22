@@ -1,9 +1,10 @@
 from langchain_core.runnables import RunnableLambda
 from app.prompts.extract_prompt import extract_prompt
-from app.core.llm import get_model
+from app.core.llm import get_model, get_compress_model
 from langchain_core.documents import Document
 
 llm = get_model()
+compress_llm = get_compress_model()
 
 
 def _msg_to_text(msg):
@@ -12,7 +13,7 @@ def _msg_to_text(msg):
 
 llm_chain_extractor = (
         extract_prompt
-        | llm
+        | compress_llm
         | RunnableLambda(_msg_to_text)
 
 )

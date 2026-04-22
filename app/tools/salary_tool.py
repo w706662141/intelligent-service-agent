@@ -28,23 +28,3 @@ def calculate_salary(base: float, bonus: float, tax_rate: float) -> dict:
             "net": net
         }
     ).to_dict()
-
-# class SalaryCalculatorTool(BaseTool):
-#     name = "caclculate_salary"
-#     description = "计算税后工资"
-#     input_model = SalaryInput
-#
-#     def run(self,input_data:SalaryInput) ->ToolOutput:
-#         gross=input_data.base+input_data.bonus
-#         tax=gross*input_data.tax_rate
-#         net=gross-tax
-#
-#         return ToolOutput(
-#             success=True,
-#             message="计算完成",
-#             data={
-#                 "gross":gross,
-#                 "tax":tax,
-#                 "net":net
-#             }
-#         )

@@ -84,14 +84,6 @@ class HybridRetriever:
         docs = self.vectorstore.similarity_search_with_relevance_scores(
             query,
             k=self.vector_k,
-            filter=Filter(
-                must=[
-                    FieldCondition(
-                        key="metadata.doc_id",
-                        match=MatchValue(value="hr_policy")
-                    )
-                ]
-            )
         )
         logger.debug(f"[HybridRetriever] Vector docs={len(docs)}")
         return docs
@@ -160,8 +152,61 @@ class HybridRetriever:
     # ========================
     # 排序 + 阈值
     # ========================
+    # def _rank(self, scored: List[Dict], top_k) -> List[Document]:
+    #     scored.sort(key=lambda x: x["hybrid_score"], reverse=True)
+    #
+    #     for item in scored:
+    #         log_event(
+    #             request_id='1',
+    #             stage='hybrid_rank',
+    #             bm25=item["bm25_norm"],
+    #             vector=item["vector_norm"],
+    #             hybrid=item["hybrid_score"]
+    #         )
+    #
+    #
+    #     results = []
+    #     # 2️⃣ 取 Top1 / Top2 做决策
+    #     top1 = scored[0]
+    #     top2 = scored[1] if len(scored) > 1 else None
+    #
+    #     top1_score = top1.get('hybrid_score', 0.0)
+    #     top2_score = top1.get('hybrid_score', 0.0) if top2 else 0.0
+    #
+    #     if top1_score < self.min_hybrid_score:
+    #         print(f"[RAG] Top1 score too low: {top1_score:.4f}")
+    #         return []
+    #     # if top2 and (top1_score - top2_score) < self.top1_gap:
+    #     #     print(
+    #     #         f"[RAG] Top1 gap too small: "
+    #     #         f"{top1_score:.4f} vs {top2_score:.4f}"
+    #     #     )
+    #     #     return []
+    #
+    #     # 4️⃣ 只返回 Top1（客服场景）
+    #     item = top1
+    #     doc = item['doc']
+    #
+    #     bm25 = item.get("bm25_norm", 0.0)
+    #     vector = item.get("vector_norm", 0.0)
+    #     hybrid = item.get("hybrid_score", 0.0)
+    #
+    #     # print(
+    #     #     f"bm25={bm25:.4f} | "
+    #     #     f"vector={vector:.4f} | "
+    #     #     f"hybrid={hybrid:.4f}"
+    #     # )
+    #
+    #     # 5️⃣ 写入 metadata（调试 + 可解释性）
+    #     doc.metadata.update({
+    #         "bm25_score": bm25,
+    #         "vector_score": vector,
+    #         "hybrid_score": hybrid,
+    #     })
+    #
+    #     return [doc]
     def _rank(self, scored: List[Dict]) -> List[Document]:
-        scored.sort(key=lambda x: x["hybrid_score"], reverse=True)
+        scored.sort(key=lambda x: x['hybrid_score'], reverse=True)
 
         for item in scored:
             log_event(
@@ -172,46 +217,47 @@ class HybridRetriever:
                 hybrid=item["hybrid_score"]
             )
 
-        results = []
-        # 2️⃣ 取 Top1 / Top2 做决策
-        top1 = scored[0]
-        top2 = scored[1] if len(scored) > 1 else None
+        if not scored:
+            return []
 
-        top1_score = top1.get('hybrid_score', 0.0)
-        top2_score = top1.get('hybrid_score', 0.0) if top2 else 0.0
+        top1_score = scored[0].get('hybrid_score', 0.0)
 
         if top1_score < self.min_hybrid_score:
-            print(f"[RAG] Top1 score too low: {top1_score:.4f}")
+            print(f"[RAG] Top1 score too low: {top1_score:.4f} < {self.min_hybrid_score}")
             return []
-        # if top2 and (top1_score - top2_score) < self.top1_gap:
-        #     print(
-        #         f"[RAG] Top1 gap too small: "
-        #         f"{top1_score:.4f} vs {top2_score:.4f}"
-        #     )
-        #     return []
 
-        # 4️⃣ 只返回 Top1（客服场景）
-        item = top1
-        doc = item['doc']
+        actual_top_k = min(self.top_k, len(scored))
 
-        bm25 = item.get("bm25_norm", 0.0)
-        vector = item.get("vector_norm", 0.0)
-        hybrid = item.get("hybrid_score", 0.0)
+        results = []
 
-        # print(
-        #     f"bm25={bm25:.4f} | "
-        #     f"vector={vector:.4f} | "
-        #     f"hybrid={hybrid:.4f}"
-        # )
+        for i in range(actual_top_k):
+            item = scored[i]
+            current_score = item.get('hybrid_score', 0.0)
+            score_gap = top1_score - current_score
 
-        # 5️⃣ 写入 metadata（调试 + 可解释性）
-        doc.metadata.update({
-            "bm25_score": bm25,
-            "vector_score": vector,
-            "hybrid_score": hybrid,
-        })
+            if score_gap >= self.top1_gap or current_score < self.min_hybrid_score:
+                print(f"[RAG] Doc at rank {i + 1} filtered due to score gap or 小于 min_score: "
+                      f"{current_score:.4f} (gap: {score_gap:.4f} > {self.top1_gap},"
+                      f"min_score:{self.min_hybrid_score})")
+                break  # 一旦遇到差距过大的，后面的也就不用检查了
 
-        return [doc]
+            doc = item['doc']
+            bm25 = item.get("bm25_norm", 0.0)
+            vector = item.get("vector_norm", 0.0)
+            hybrid = item.get("hybrid_score", 0.0)
+
+            doc.metadata.update({
+                "bm25_score": bm25,
+                "vector_score": vector,
+                "hybrid_score": hybrid,
+                "rank": len(results) + 1,
+                "score_gap": score_gap,
+            })
+
+            results.append(doc)
+        print(f"[RAG] Returning {len(results)} documents (requested top_{self.top_k})")
+        return results
+
 
     @staticmethod
     def _normalize(scores: np.ndarray) -> np.ndarray:

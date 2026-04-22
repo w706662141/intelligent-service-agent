@@ -16,7 +16,7 @@ if not logger.handlers:
     logger.addHandler(handler)
 
 
-def log_event(request_id: str, stage: str, **kwargs):
+def log_event(request_id: str = '', stage: str = '', **kwargs):
     log = {
         "request_id": request_id,
         "stage": stage,
