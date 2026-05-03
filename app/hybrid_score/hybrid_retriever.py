@@ -80,7 +80,7 @@ class HybridRetriever:
         similarity_search_with_score
         return: List[(Document, score)]
         """
-
+        print('query',query)
         docs = self.vectorstore.similarity_search_with_relevance_scores(
             query,
             k=self.vector_k,

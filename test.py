@@ -9,6 +9,6 @@ from app.core.pipeline import Pipeline
 # print(res)
 
 pipeline = ReActPlanExecutor(role='admin')
-res = pipeline.run('帮我查一下编号为E001的员工,并查询出所有和E001员工相关的订单')
-# res = pipeline.run('报销流程咋弄的')
+# res = pipeline.run('帮我查一下编号为E001的员工,并查询出所有和E001员工相关的订单')
+res = pipeline.run('电子商务的概念是什么？')
 print('res', res)

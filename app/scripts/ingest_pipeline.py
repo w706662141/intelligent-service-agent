@@ -1,19 +1,22 @@
 from app.file_kb.loader import load_docs
-from app.file_kb.splitter import split_docs
+from app.file_kb.splitter import split_docs,split_qa_docs
 
 from app.vector_store.qdrant_store import QdrantStore
 
 
 def ingest_file(path):
+    store = QdrantStore()
     print("Loading docs")
 
     docs = load_docs(path)
 
     print("splitting docs")
 
-    chunks = split_docs(docs)
+    # chunks = split_docs(docs)
+    chunks = split_qa_docs(docs)
 
-    store = QdrantStore()
+    print("chunks数量:", len(chunks))
+    print("第一个chunk:\n", chunks[0].page_content)
 
     doc_id = chunks[0].metadata['doc_id']
 

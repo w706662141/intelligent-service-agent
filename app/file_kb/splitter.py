@@ -1,7 +1,23 @@
 from datetime import datetime
+
+from langchain_core.documents import Document
+
 from app.file_kb.utils import md5
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+
+def split_qa_text(text):
+    chunks = []
+
+    parts = text.split('\n\n')
+
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        chunks.append(part)
+    return chunks
 
 
 def split_docs(docs):
@@ -15,8 +31,8 @@ def split_docs(docs):
         - chunk_hash
         """
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=100,
-        chunk_overlap=15,
+        chunk_size=500,
+        chunk_overlap=80,
         separators=["\n\n",
                     "\n",
                     "。",
@@ -63,5 +79,67 @@ def split_docs(docs):
         doc_chunks_count[doc_id] += 1
 
         processed_chunks.append(chunk)
+
+    return processed_chunks
+
+
+def split_qa_docs(docs):
+    """
+        Split documents into chunks and attach metadata.
+
+        Metadata generated:
+        - doc_id
+        - chunk_index
+        - chunk_id
+        - chunk_hash
+        """
+
+    created_at = datetime.now().isoformat()
+
+    processed_chunks = []
+    doc_chunks_count = {}
+
+    for doc in docs:
+        text = doc.page_content
+
+        # 👉 1. QA切分
+        qa_chunks = split_qa_text(text)
+        print('qa_chunks', qa_chunks)
+
+        # 👉 2. 获取 doc_id
+        doc_id = doc.metadata.get('doc_id')
+
+        if not doc_id:
+            source = doc.metadata.get('source', 'unknown')
+            doc_id = source.split('.')[0]
+
+        if doc_id not in doc_chunks_count:
+            doc_chunks_count[doc_id] = 0
+
+        for qa_text in qa_chunks:
+            chunk_index = doc_chunks_count[doc_id]
+            chunk_id = f"{doc_id}_chunk_{chunk_index}"
+
+            chunk_hash = md5(qa_text)
+
+            new_doc = Document(
+                page_content=qa_text,
+                metadata={
+                    "source": doc.metadata.get("source"),
+                    "doc_id": doc_id,
+                    "doc_hash": doc.metadata.get("doc_hash"),
+
+                    # 🔥 QA切分新增字段
+                    "chunk_index": chunk_index,
+                    "chunk_id": chunk_id,
+                    "chunk_hash": chunk_hash,
+                    "created_at": created_at,
+
+                }
+            )
+
+            doc_chunks_count[doc_id] += 1
+
+            processed_chunks.append(new_doc)
 
     return processed_chunks

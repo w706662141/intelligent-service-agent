@@ -2,7 +2,6 @@ from langchain_core.runnables import RunnableLambda
 from app.rag.fallback_policy import FALLBACK_POLICY
 from app.router.intent_router import IntentRouter
 from app.core.llm import get_model
-from app.rag.answer import rag_answer
 from app.prompts.builder import build_rag_prompt
 from app.prompts.system.policy import POLICY_SYSTEM_PROMPT
 from app.prompts.rag.rag_prompt import RAG_TASK_PROMPT
@@ -14,8 +13,24 @@ def format_docs(docs):
 
     formatted_contents = []
     for item in docs:
-        doc = item[0] if isinstance(item, tuple) else item
-        formatted_contents.append(doc.page_content)
+        # 1️⃣ LangChain Document
+        if hasattr(item, "page_content"):
+            formatted_contents.append(item.page_content)
+
+        # 2️⃣ tuple 结构
+        elif isinstance(item, tuple):
+            key, value = item
+
+            if key == "page_content":
+                formatted_contents.append(value)
+
+            elif hasattr(value, "page_content"):
+                formatted_contents.append(value.page_content)
+
+        # 3️⃣ 字符串兜底
+        elif isinstance(item, str):
+            formatted_contents.append(item)
+
     return '\n\n'.join(formatted_contents)
 
 

@@ -19,9 +19,9 @@ llm_chain_extractor = (
 )
 
 
-def compress_document(doc, query, min_tokens=300):
+def compress_document(doc, query, min_tokens=400):
     if len(doc.page_content) <= min_tokens:
-        return doc
+        return [doc]
 
     compressed = llm_chain_extractor.invoke({
         "query": query,
@@ -30,6 +30,6 @@ def compress_document(doc, query, min_tokens=300):
 
     # LLM 返回空，兜底
     if not compressed:
-        return doc
+        return [doc]
     return [Document(page_content=compressed,
                      metadata=doc.metadata)]

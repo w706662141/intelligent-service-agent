@@ -1,4 +1,4 @@
-from app.core.llm import get_validator_model,get_router_model,get_compress_model
+from app.core.llm import get_validator_model,get_router_model,get_compress_model,get_model
 from langchain_core.prompts import ChatPromptTemplate
 
 

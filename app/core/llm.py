@@ -16,10 +16,11 @@ def get_model():
         _model = ChatOpenAI(
             max_retries=3,  # ⭐ 重试
             # model="mistralai/mistral-7b-instruct",
-            model="arcee-ai/trinity-large-preview:free",
+            model="tencent/hy3-preview:free",
             openai_api_key=os.getenv('OPENROUTER_API_KEY'),
             openai_api_base="https://openrouter.ai/api/v1",
             temperature=0,
+
         )
 
     return _model
@@ -30,9 +31,8 @@ def get_compress_model():
     if _compress_model is None:
         _compress_model = ChatOpenAI(
             max_retries=3,  # ⭐ 重试
-            # model='qwen/qwen3-coder:free',
-            model="arcee-ai/trinity-large-preview:free",
-            # model="z-ai/glm-4.5-air:free",
+            # model="qwen/qwen3-coder:free",
+            model="tencent/hy3-preview:free",
             openai_api_key=os.getenv('OPENROUTER_API_KEY'),
             openai_api_base="https://openrouter.ai/api/v1",
             temperature=0,
@@ -45,7 +45,8 @@ def get_router_model():
     if _router_model is None:
         _router_model = ChatOpenAI(
             max_retries=3,  # ⭐ 重试
-            model="arcee-ai/trinity-large-preview:free",
+            # model="qwen/qwen3-coder:free",
+            model="tencent/hy3-preview:free",
             openai_api_key=os.getenv('OPENROUTER_API_KEY'),
             openai_api_base="https://openrouter.ai/api/v1",
             temperature=0,

@@ -91,8 +91,8 @@ class ReActPlanExecutor:
     def normalize_output(self, res):
         if hasattr(res, 'content'):
             res = res.content
-
-        res = res.replace('最终答案', '').strip()
+        if '最终答案' in res:
+            res = res.replace('最终答案', '').strip()
         return res
 
     def run(self, question: str):

@@ -25,8 +25,10 @@ def rag_search(question: str, messages=None) -> dict:
 
     适用于：
     - 公司制度（报销流程、请假规则）
-    - FAQ问题
-    - 技术文档说明
+    - FAQ 与基础概念： 快速查询电子商务、网络营销、电子交易及电子支付的基本定义与核心概念（如：什么是“牛鞭效应”、电子支付的优势等） 。
+    - 商业模式与战略分析： 包含对不同电商商业模式（B2B, B2C等）、战略规划工具（价值链分解、情境规划）及价值创造源泉的深度解析 。
+    - 技术与法律文档说明： 涵盖互联网技术架构（TCP/IP, OSI模型）、新兴技术（物联网、云计算、大数据）以及《电子商务法》相关法律规范（如电子合同、知识产权） 。
+    - 运营与供应链： 关于网络营销策略（4P/4C模型）、订单履行流程、第三方物流类型及供应链管理任务的专业指导
 
     不适用于：
     - 精确数值查询
@@ -72,7 +74,7 @@ def rag_search(question: str, messages=None) -> dict:
     compress_docs = []
     for doc in docs[:3]:
         compress_docs.extend(
-            compress_document(doc, rewrite_question, 20)
+            compress_document(doc, rewrite_question, 400)
         )
     # compress_docs = compress_document(docs[0], rewrite_question, 20)
     print('compress_docs', compress_docs)
