@@ -10,7 +10,8 @@ def get_client():
     if _client is None:
         _client = QdrantClient(
             host=QDRANT_HOST,
-            port=QDRANT_PORT
+            port=QDRANT_PORT,
+            timeout=60
         )
 
     return _client

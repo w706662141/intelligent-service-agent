@@ -2,6 +2,9 @@ from app.rag.vectorstore import load_qdrant_vectorstore
 from app.hybrid_score.bm25 import get_bm25_retriever
 from app.rag.store import get_hr_chunks, get_faq_chunks, get_tech_chunks, get_rag_collection_chunks
 from app.hybrid_score.hybrid import build_hybrid_retriever
+from app.core.reranker import get_reranker_model
+
+reranker = get_reranker_model()
 
 
 def get_rag_collection_retriever():
@@ -12,11 +15,16 @@ def get_rag_collection_retriever():
     return build_hybrid_retriever(
         bm25_retriever=bm25,
         vector_retriever=vector,
+        reranker=reranker,
+        top_k=5,
+        vector_k=5,
         bm25_weight=0.6,
         vector_weight=0.4,
         min_hybrid_score=0.6,
         top1_gap=0.15,
-        doc_name=''
+        doc_name='',
+        rrf_k=10,
+        recall_k=3,
 
     )
 

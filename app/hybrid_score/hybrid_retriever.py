@@ -25,7 +25,10 @@ class HybridRetriever:
             vector_k: int = 3,
             min_hybrid_score: float | None = None,
             top1_gap: float = 0.15,
-            doc_id: str = ''
+            doc_id: str = '',
+            reranker=None,
+            rrf_k=20,
+            recall_k=3,
 
     ) -> None:
         self.bm25 = bm25_retriever
@@ -37,6 +40,9 @@ class HybridRetriever:
         self.min_hybrid_score = min_hybrid_score
         self.top1_gap = top1_gap
         self.doc_id = doc_id
+        self.reranker = reranker
+        self.rrf_k = rrf_k
+        self.recall_k = recall_k
 
     def __call__(self, query: str):
         return self.retrieve(query)
@@ -49,11 +55,24 @@ class HybridRetriever:
         bm25_docs = self._bm25_search(query)
         vector_docs = self._vector_search(query)
 
-        merged = self._merge_results(bm25_docs, vector_docs)
-        scored = self._score_fusion(merged)
-        ranked = self._rank(scored)
+        print('bm25_docs', bm25_docs)
+        print('vector_docs_result', vector_docs)
 
-        return ranked
+        # merged = self._merge_results(bm25_docs, vector_docs)
+        # scored = self._score_fusion(merged)
+        # ranked = self._rank(scored)
+
+        # 合并 + RRF
+        candidates = self._rrf_fusion(bm25_docs, vector_docs)
+        # 3️⃣ 截断候选
+        candidates = candidates[:self.recall_k]
+        # 4️⃣ rerank（关键）
+        if self.reranker:
+            candidates = self._rerank(query, candidates)
+
+        print('candidates', candidates[:self.top_k])
+
+        return candidates[:self.top_k]
 
     # def invoke(self, query: str):
     #     return self.retrieve(query)
@@ -64,9 +83,10 @@ class HybridRetriever:
     def _bm25_search(self, query: str) -> List[Document]:
         docs = self.bm25.invoke(query)
 
-        for d in docs:
+        for i, d in enumerate(docs):
             if "bm25_score" not in d.metadata:
                 raise ValueError("BM25 document missing bm25_score in metadata")
+            d.metadata['bm25_rank'] = i + 1
 
         logger.debug(f"[HybridRetriever] BM25 docs={len(docs)}")
         return docs
@@ -80,12 +100,19 @@ class HybridRetriever:
         similarity_search_with_score
         return: List[(Document, score)]
         """
-        print('query',query)
-        docs = self.vectorstore.similarity_search_with_relevance_scores(
+        print('query', query)
+        docs_with_scores = self.vectorstore.similarity_search_with_relevance_scores(
             query,
             k=self.vector_k,
         )
-        logger.debug(f"[HybridRetriever] Vector docs={len(docs)}")
+        logger.debug(f"[HybridRetriever] Vector docs={len(docs_with_scores)}")
+
+        docs = []
+        for i, (doc, score) in enumerate(docs_with_scores):
+            doc.metadata['vector_score'] = score
+            doc.metadata['vector_rank'] = i + 1
+            docs.append(doc)
+
         return docs
 
     # ========================
@@ -136,6 +163,9 @@ class HybridRetriever:
         bm25_norm = self._normalize(bm25_scores)
         vector_norm = self._normalize(vector_scores)
 
+        print('bm25_norm', bm25_norm)
+        print('vector_norm', vector_norm)
+
         fused = []
         for (doc_id, v), b_score, v_score in zip(
                 results.items(), bm25_norm, vector_norm
@@ -149,62 +179,6 @@ class HybridRetriever:
             fused.append(v)
         return fused
 
-    # ========================
-    # 排序 + 阈值
-    # ========================
-    # def _rank(self, scored: List[Dict], top_k) -> List[Document]:
-    #     scored.sort(key=lambda x: x["hybrid_score"], reverse=True)
-    #
-    #     for item in scored:
-    #         log_event(
-    #             request_id='1',
-    #             stage='hybrid_rank',
-    #             bm25=item["bm25_norm"],
-    #             vector=item["vector_norm"],
-    #             hybrid=item["hybrid_score"]
-    #         )
-    #
-    #
-    #     results = []
-    #     # 2️⃣ 取 Top1 / Top2 做决策
-    #     top1 = scored[0]
-    #     top2 = scored[1] if len(scored) > 1 else None
-    #
-    #     top1_score = top1.get('hybrid_score', 0.0)
-    #     top2_score = top1.get('hybrid_score', 0.0) if top2 else 0.0
-    #
-    #     if top1_score < self.min_hybrid_score:
-    #         print(f"[RAG] Top1 score too low: {top1_score:.4f}")
-    #         return []
-    #     # if top2 and (top1_score - top2_score) < self.top1_gap:
-    #     #     print(
-    #     #         f"[RAG] Top1 gap too small: "
-    #     #         f"{top1_score:.4f} vs {top2_score:.4f}"
-    #     #     )
-    #     #     return []
-    #
-    #     # 4️⃣ 只返回 Top1（客服场景）
-    #     item = top1
-    #     doc = item['doc']
-    #
-    #     bm25 = item.get("bm25_norm", 0.0)
-    #     vector = item.get("vector_norm", 0.0)
-    #     hybrid = item.get("hybrid_score", 0.0)
-    #
-    #     # print(
-    #     #     f"bm25={bm25:.4f} | "
-    #     #     f"vector={vector:.4f} | "
-    #     #     f"hybrid={hybrid:.4f}"
-    #     # )
-    #
-    #     # 5️⃣ 写入 metadata（调试 + 可解释性）
-    #     doc.metadata.update({
-    #         "bm25_score": bm25,
-    #         "vector_score": vector,
-    #         "hybrid_score": hybrid,
-    #     })
-    #
-    #     return [doc]
     def _rank(self, scored: List[Dict]) -> List[Document]:
         scored.sort(key=lambda x: x['hybrid_score'], reverse=True)
 
@@ -258,7 +232,6 @@ class HybridRetriever:
         print(f"[RAG] Returning {len(results)} documents (requested top_{self.top_k})")
         return results
 
-
     @staticmethod
     def _normalize(scores: np.ndarray) -> np.ndarray:
         if len(scores) == 0:
@@ -270,3 +243,58 @@ class HybridRetriever:
         if max_v == min_v:
             return np.ones_like(scores)
         return (scores - min_v) / (max_v - min_v)
+
+    def _rrf(self, rank):
+        return 1 / (self.rrf_k + rank)
+
+    def _rrf_fusion(self, bm25_docs, vector_docs):
+
+        results = {}
+
+        def get_id(doc):
+            return doc.metadata.get('chunk_id') or doc.metadata.get('doc_id')
+
+        # bm25
+        for doc in bm25_docs:
+            doc_id = get_id(doc)
+            results.setdefault(doc_id, {
+                'doc': doc,
+                'bm25_rank': None,
+                'vector_rank': None
+            })
+
+            results[doc_id]['bm25_rank'] = doc.metadata['bm25_rank']
+
+        # vector
+        for doc in vector_docs:
+            doc_id = get_id(doc)
+            results.setdefault(doc_id, {
+                'doc': doc,
+                'bm25_rank': None,
+                'vector_rank': None
+            })
+
+            results[doc_id]['vector_rank'] = doc.metadata['vector_rank']
+
+        # 👉 计算 RRF 分数
+        fused = []
+
+        for item in results.values():
+            score = 0.0
+
+            if item['bm25_rank']:
+                score += self._rrf(item['bm25_rank'])
+
+            if item['vector_rank']:
+                score += self._rrf(item['vector_rank'])
+
+            item['score'] = score
+            fused.append(item)
+
+        # 排序
+        fused.sort(key=lambda x: x['score'], reverse=True)
+
+        return [x['doc'] for x in fused]
+
+    def _rerank(self, query, docs):
+        return self.reranker.rerank(query, docs)

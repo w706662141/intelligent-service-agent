@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Form
 from pydantic import BaseModel
-from app.core.pipeline import Pipeline
-from app.agent.agent import MultiKBCustomerSupportAgent
+
+from app.agent.executor import ReActPlanExecutor
 
 router = APIRouter()
 
-agent = MultiKBCustomerSupportAgent()
-pipeline=Pipeline('admin')
+
+pipeline = ReActPlanExecutor(role='admin')
 
 
 class ChatResponse(BaseModel):
@@ -15,6 +15,6 @@ class ChatResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(question: str = Form(..., description="请输入你的问题")):
-    answer=pipeline.run(question)
+    answer = pipeline.run(question)
     # answer = agent.run(question)
     return {"answer": answer}

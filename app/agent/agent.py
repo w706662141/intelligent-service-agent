@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate
 from app.core.llm import get_model
 from app.prompts.task.classifier import classify_question
-from app.agent.retrievers import get_retriever_by_category, get_retriever
+from app.agent.retrievers import  get_retriever
 from app.query.query_rewriter import QueryRewriter
 from app.rag.chain import build_rag_chain
 from app.config.agent_log import log_event
