@@ -1,0 +1,33 @@
+# Web Framework
+fastapi
+uvicorn
+
+# LangChain
+langchain
+langchain-core
+langchain-openai
+langchain-groq
+langchain-qdrant
+langchain-huggingface
+langchain-chroma
+langchain-community
+langchain-text-splitters
+
+# Vector Store
+qdrant-client
+
+# Embeddings & Reranking
+sentence-transformers
+rank-bm25
+
+# Database
+sqlalchemy
+pymysql
+
+# NLP
+jieba
+numpy
+
+# Utilities
+pydantic
+python-dotenv
