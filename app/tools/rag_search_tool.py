@@ -67,7 +67,7 @@ def rag_search(question: str, messages=None) -> dict:
         return ToolResult(
             success=False,
             error_type=ErrorType.NOT_FOUND,
-            message="为检索到相关信息",
+            message="未检索到相关信息",
         ).to_dict()
 
     # 压缩
