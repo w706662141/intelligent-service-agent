@@ -28,6 +28,9 @@ pymysql
 jieba
 numpy
 
+# Auth
+pyjwt
+
 # Utilities
 pydantic
 python-dotenv
