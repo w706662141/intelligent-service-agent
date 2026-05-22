@@ -88,6 +88,28 @@ class ReActPlanExecutor:
 
         return final_answer
 
+    def _stream_react_run(self, question, history):
+        full_answer = ""
+        for chunk in self.pipeline.run(question, history=history):
+            full_answer += chunk
+            yield chunk
+        self.memory.add(self.role, full_answer)
+
+    def _stream_plan_run(self, question, history):
+        plan = self.planner.plan(question)
+        result = self.plan_executor.execute(plan, history)
+        prompt = f"""
+        用户问题: {question}
+        执行结果(JSON): {json.dumps(result["results"], ensure_ascii=False, default=str, indent=2)}
+        请给出最终答案
+        """
+        full_answer = ""
+        for chunk in self.summarize_llm.stream(prompt):
+            text = chunk.content
+            full_answer += text
+            yield text
+        self.memory.add(self.role, self.normalize_output(full_answer))
+
     def normalize_output(self, res):
         if hasattr(res, 'content'):
             res = res.content
@@ -107,23 +129,30 @@ class ReActPlanExecutor:
             router_res=router_res
         )
         if router_res == 'SIMPLE':
+            full_answer = ""
             log_event(
                 router='SIMPLE'
             )
-            result = self.simple_run(question)
+            for chunk in self.llm.stream(question):
+                full_answer += chunk.content
+                yield chunk.content
+            self.memory.add(self.role, full_answer)
+            # result = self.simple_run(question)
         elif router_res == 'TOOL':
             log_event(
                 router='TOOL'
             )
-            result = self.react_run(question)
+            yield from self._stream_react_run(question, history)
+            # result = self.react_run(question)
         else:
             log_event(
                 router='COMPLEX'
             )
-            result = self.plan_run(question)
+            yield from self._stream_plan_run(question, history)
+            # result = self.plan_run(question)
 
-        self.memory.add(self.role, result)
+        # self.memory.add(self.role, result)
 
-        result = self.normalize_output(result)
+        # result = self.normalize_output(result)
 
-        return result
+        # return result

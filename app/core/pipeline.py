@@ -59,10 +59,10 @@ class Pipeline:
             response: AIMessage = self.llm.invoke(messages)
             print('response', response)
             if not response.tool_calls:
-                return response.content
+                yield response.content
+                return
 
             messages.append(response)
-
             tool_results = []
             has_retryable_error = False
             print('tool_call', response.tool_calls)
@@ -72,12 +72,15 @@ class Pipeline:
                 sig = f"{tool_call['name']}_{str(tool_call['args'])}"
 
                 if sig in called_signatures:
-                    return {
-                        "success": False,
-                        "error_type": "REPEAT_BLOCKED",
-                        "message": "多次重复查询未果，任务已终止",
-                        "data": None
-                    }
+
+                    # return {
+                    #     "success": False,
+                    #     "error_type": "REPEAT_BLOCKED",
+                    #     "message": "多次重复查询未果，任务已终止",
+                    #     "data": None
+                    # }
+                    yield "处理失败，请稍后再试"
+                    return
                 called_signatures.add(sig)
 
                 result = self.executor.execute(tool_call, messages=messages)
@@ -92,8 +95,8 @@ class Pipeline:
                     ErrorType.RETRYABLE,
                     ErrorType.TIMEOUT
                 ]:
-                    return result
-
+                    yield json.dumps(result, ensure_ascii=False)
+                    return
                 if not success:
                     has_retryable_error = True
 
@@ -114,7 +117,11 @@ class Pipeline:
                         )
                     )
 
-                    return data.get('answer')
+                    # ★★★ 这里是关键：invoke → stream ★★★
+                    for chunk in self.summarize_llm.stream(messages):
+                        yield chunk.content
+                    return
+                    # return data.get('answer')
 
             if has_retryable_error:
                 for tool_call, result in tool_results:
@@ -133,14 +140,19 @@ class Pipeline:
                         tool_call_id=tool_call['id']
                     )
                 )
+            # ★★★ 这里是关键：invoke → stream ★★★
+            for chunk in self.summarize_llm.stream(messages):
+                yield chunk.content
+            return
 
-            final_response = self.summarize_llm.invoke(messages)
+            # final_response = self.summarize_llm.invoke(messages)
 
-            return final_response.content
+            # return final_response.content
 
-        return {
-            "success": False,
-            "error_type": "MAX_STEPS_EXCEEDED",
-            "message": "处理失败，请稍后再试",
-            "data": None
-        }
+        # return {
+        #     "success": False,
+        #     "error_type": "MAX_STEPS_EXCEEDED",
+        #     "message": "处理失败，请稍后再试",
+        #     "data": None
+        # }
+        yield "处理失败，请稍后再试"

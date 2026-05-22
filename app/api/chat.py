@@ -1,5 +1,8 @@
+import json
+
 from fastapi import APIRouter, Depends, Form, Query, Header
 from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
 
 from app.auth.jwt import create_token, verify_token
 from app.memory.session_manager import SessionManager
@@ -15,9 +18,9 @@ class ChatResponse(BaseModel):
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(
-    question: str = Form(..., description="请输入你的问题"),
-    session_id: str = Header(..., alias="X-Session-Id", description="会话ID"),
-    token_payload: dict = Depends(verify_token),
+        question: str = Form(..., description="请输入你的问题"),
+        session_id: str = Header(..., alias="X-Session-Id", description="会话ID"),
+        token_payload: dict = Depends(verify_token),
 ):
     user_id = token_payload["sub"]
     role = token_payload.get("role", "user")
@@ -25,6 +28,31 @@ def chat(
     session = session_manager.get_or_create(user_id, session_id, role)
     answer = session.executor.run(question)
     return {"answer": answer}
+
+
+@router.post('/chat/stream')
+def chat_stream(
+        question: str = Form(..., description="请输入你的问题"),
+        session_id: str = Header(..., alias="X-Session-Id", description="会话ID"),
+        token_payload: dict = Depends(verify_token),
+):
+    user_id = token_payload["sub"]
+    role = token_payload.get("role", "user")
+
+    session = session_manager.get_or_create(user_id, session_id, role)
+
+    def event_generator():
+        for chunk in session.executor.run(question):
+            # SSE 格式：data: xxx\n\n
+            yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+
+    )
 
 
 @router.post("/token")
@@ -36,8 +64,8 @@ def get_token(user_id: str = Query(...), role: str = Query(default="user")):
 
 @router.delete("/session")
 def clear_session(
-    session_id: str = Header(..., alias="X-Session-Id"),
-    token_payload: dict = Depends(verify_token),
+        session_id: str = Header(..., alias="X-Session-Id"),
+        token_payload: dict = Depends(verify_token),
 ):
     user_id = token_payload["sub"]
     removed = session_manager.remove(user_id, session_id)
