@@ -1,9 +1,10 @@
 from pydantic import BaseModel, Field
 from langchain_core.tools import tool
 from app.content.context_builder import ContextRewriter
-from app.core.llm import get_model
+from app.core.llm import get_model, get_router_model
 
-from app.agent.retrievers import get_retriever
+from app.agent.retrievers import get_retriever, get_retriever_by_category
+from app.prompts.task.classifier import classify_question
 from app.query.query_rewriter import QueryRewriter
 from app.rag.chain import build_rag_chain
 from app.config.agent_log import log_event
@@ -60,7 +61,10 @@ def rag_search(question: str, messages=None) -> dict:
         tool="rag_search_tool"
     )
 
-    retriever = get_retriever()
+    category = classify_question(rewrite_question, get_router_model())
+
+    # retriever = get_retriever(category)
+    retriever = get_retriever_by_category(category)
     docs = retriever.retrieve(rewrite_question)
     print('docs', docs)
     if not docs:
@@ -74,7 +78,7 @@ def rag_search(question: str, messages=None) -> dict:
     compress_docs = []
     for doc in docs[:3]:
         compress_docs.extend(
-            compress_document(doc, rewrite_question, 400)
+            compress_document(doc, rewrite_question, 100)
         )
     # compress_docs = compress_document(docs[0], rewrite_question, 20)
     print('compress_docs', compress_docs)

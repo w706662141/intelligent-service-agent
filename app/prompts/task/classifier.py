@@ -1,6 +1,6 @@
 from app.prompts.classifier_prompt import classifier_prompt
 
-CATEGORIES = ['FAQ', 'HR', 'TECH', 'CHAT']
+CATEGORIES = ['FAQ', 'HR', 'TECH', 'CHAT', 'E-COMMERCE']
 
 
 def classify_question(question: str, llm) -> str:

@@ -23,9 +23,6 @@ class Pipeline:
             - 成功时不要再次调用工具
             - 非可重试错误不要再次调用
             """
-        # self.messages = [
-        #     SystemMessage(content=self.system_content),
-        # ]
 
     def run(self, question: str, context: dict = None, history: str = None):
 

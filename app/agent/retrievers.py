@@ -7,7 +7,7 @@ from app.core.reranker import get_reranker_model
 reranker = get_reranker_model()
 
 
-def get_rag_collection_retriever():
+def get_rag_collection_retriever(doc_name):
     vector = load_qdrant_vectorstore('rag_docs')
     RAG_COLLECTION_CHUNKS = get_rag_collection_chunks()
     bm25 = get_bm25_retriever(RAG_COLLECTION_CHUNKS, k=3, collection_name='rag_docs')
@@ -22,60 +22,99 @@ def get_rag_collection_retriever():
         vector_weight=0.4,
         min_hybrid_score=0.6,
         top1_gap=0.15,
-        doc_name='',
+        doc_name=doc_name,
         rrf_k=10,
         recall_k=3,
 
     )
 
 
-def get_hr_retriever():
+def get_hr_retriever(doc_name):
     vector = load_qdrant_vectorstore("rag_docs")
-    # HR_CHUNKS = get_hr_chunks()
-    bm25 = get_bm25_retriever("", k=3, collection_name="hr_kb")
+    RAG_COLLECTION_CHUNKS = get_rag_collection_chunks()
+    bm25 = get_bm25_retriever(RAG_COLLECTION_CHUNKS, k=3, collection_name='rag_docs')
 
     return build_hybrid_retriever(
         bm25_retriever=bm25,
         vector_retriever=vector,
+        reranker=reranker,
+        top_k=5,
+        vector_k=5,
         bm25_weight=0.6,
         vector_weight=0.4,
         min_hybrid_score=0.6,
         top1_gap=0.15,
-        doc_name='hr_policy'
+        doc_name=doc_name,
+        rrf_k=10,
+        recall_k=3,
+
     )
 
 
-def get_tech_retriever():
+def get_tech_retriever(doc_name):
     # vector = load_chroma_vectorstore("tech_kb")
     vector = load_qdrant_vectorstore("rag_docs")
-    TECH_CHUNKS = get_tech_chunks()
-    bm25 = get_bm25_retriever(TECH_CHUNKS, k=3, collection_name='tech_kb')
+    RAG_COLLECTION_CHUNKS = get_rag_collection_chunks()
+    bm25 = get_bm25_retriever(RAG_COLLECTION_CHUNKS, k=3, collection_name='rag_docs')
 
     return build_hybrid_retriever(
         bm25_retriever=bm25,
         vector_retriever=vector,
-        bm25_weight=0.5,
-        vector_weight=0.5,
+        reranker=reranker,
+        top_k=5,
+        vector_k=5,
+        bm25_weight=0.6,
+        vector_weight=0.4,
         min_hybrid_score=0.6,
         top1_gap=0.15,
-        doc_name='tech_support'
+        doc_name=doc_name,
+        rrf_k=10,
+        recall_k=3,
+
     )
 
 
-def get_faq_retriever():
+def get_faq_retriever(doc_name):
     # vector = load_chroma_vectorstore('faq_kb')
     vector = load_qdrant_vectorstore('rag_docs')
-    FAQ_CHUNKS = get_faq_chunks()
-    bm25 = get_bm25_retriever('faq_kb', FAQ_CHUNKS, k=3)
+    RAG_COLLECTION_CHUNKS = get_rag_collection_chunks()
+    bm25 = get_bm25_retriever(RAG_COLLECTION_CHUNKS, k=3, collection_name='rag_docs')
 
     return build_hybrid_retriever(
         bm25_retriever=bm25,
         vector_retriever=vector,
-        bm25_weight=0.4,
-        vector_weight=0.6,
+        reranker=reranker,
+        top_k=5,
+        vector_k=5,
+        bm25_weight=0.6,
+        vector_weight=0.4,
         min_hybrid_score=0.6,
         top1_gap=0.15,
-        doc_name='faq'
+        doc_name=doc_name,
+        rrf_k=10,
+        recall_k=3,
+
+    )
+
+
+def get_e_commerce_retriever(doc_name):
+    vector = load_qdrant_vectorstore('rag_docs')
+    RAG_COLLECTION_CHUNKS = get_rag_collection_chunks()
+    bm25 = get_bm25_retriever(RAG_COLLECTION_CHUNKS, k=3, collection_name='rag_docs')
+
+    return build_hybrid_retriever(
+        bm25_retriever=bm25,
+        vector_retriever=vector,
+        reranker=reranker,
+        top_k=5,
+        vector_k=5,
+        bm25_weight=0.6,
+        vector_weight=0.4,
+        min_hybrid_score=0.6,
+        top1_gap=0.15,
+        doc_name=doc_name,
+        rrf_k=10,
+        recall_k=3,
     )
 
 
@@ -89,14 +128,16 @@ def get_retriever_by_category(category: str):
     根据问题分类返回对应 retriever
     """
     if category == 'FAQ':
-        return get_faq_retriever()
+        return get_faq_retriever(category)
     elif category == 'HR':
-        return get_hr_retriever()
+        return get_hr_retriever(category)
     elif category == 'TECH':
-        return get_tech_retriever()
+        return get_tech_retriever(category)
+    elif category == 'E-COMMERCE':
+        return get_e_commerce_retriever(category)
     else:
         return RejectRetriever()
 
 
-def get_retriever():
-    return get_rag_collection_retriever()
+def get_retriever(doc_name):
+    return get_rag_collection_retriever(doc_name)

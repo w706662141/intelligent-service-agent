@@ -101,9 +101,21 @@ class HybridRetriever:
         return: List[(Document, score)]
         """
         print('query', query)
+        qdrant_filter = None
+        if self.doc_id:
+            qdrant_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key='doc_id',
+                        match=MatchValue(value=self.doc_id)
+                    )]
+            )
+
         docs_with_scores = self.vectorstore.similarity_search_with_relevance_scores(
             query,
             k=self.vector_k,
+            filter=qdrant_filter,
+
         )
         logger.debug(f"[HybridRetriever] Vector docs={len(docs_with_scores)}")
 

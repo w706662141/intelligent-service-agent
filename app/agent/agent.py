@@ -80,7 +80,7 @@ class MultiKBCustomerSupportAgent:
                 page_content=docs[0].page_content
             )
 
-            compress_docs = compress_document(docs[0], rewrite_question, 20)
+            compress_docs = compress_document(docs[0], rewrite_question, 400)
             print('compress_docs', compress_docs)
             log_event(
                 request_id='1',

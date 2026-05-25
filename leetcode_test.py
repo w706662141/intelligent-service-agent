@@ -1,6 +1,6 @@
-from app.core.llm import get_xiaomi_model
+from app.agent.executor import ReActPlanExecutor
 
-model=get_xiaomi_model()
-res=model.invoke('你好')
 
-print(res)
+for chunk in ReActPlanExecutor('admin').run('请假流程是什么样的'):
+    print(chunk,end='',flush=True)
+print()

@@ -7,11 +7,12 @@ classifier_prompt = ChatPromptTemplate.from_template("""
    - HR：请假、报销、入职、离职、考勤、公司制度、规定、流程
    - TECH：系统报错、接口异常、技术问题
    - CHAT：闲聊、问候、与公司无关的常识
+   - E-COMMERCE：电子商务概念、商业模式（B2B/B2C/C2C/O2O）、网络营销、电子交易、电子支付、供应链管理、物流配送、电子商务法、消费者权益、云计算与网站设计
 
    ⚠️ 规则：
    - 只要涉及“请假 / 制度 / 规定 / 流程 / 人事政策”，一律归为 HR
    - 即使是名词或短语，也必须分类
-   - 只能返回：FAQ、HR、TECH、CHAT
+   - 只能返回：FAQ、HR、TECH、CHAT、E-COMMERCE
 
    用户问题：
    {question}

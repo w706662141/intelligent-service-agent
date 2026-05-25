@@ -1,49 +1,78 @@
-from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
+from app.db.database_pools import POOL
+from app.db.base import Base
 
-from app.db.database import get_connection, get_mysql_connection
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=POOL)
 
 
-def init_db():
-    with get_mysql_connection() as conn:
-        cursor = conn.cursor()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-        cursor.execute("""
-        INSERT INTO department (name, location) VALUES
-        ('HR', '北京'),
-        ('IT', '上海');
-        """)
-        cursor.execute("""  
-        INSERT INTO employee (employee_id, name, department_id, role, hire_date) VALUES
-        ('E001', '张三', 1, '经理', '2020-01-01'),
-        ('E002', '李四', 2, '工程师', '2021-06-01');
-                """)
-        cursor.execute("""  
-        INSERT INTO orders (employee_id, amount, status, created_at) VALUES
-        ('E001', 5000.00, 'completed', NOW()),
-        ('E001', 2000.00, 'pending', NOW()),
-        ('E002', 8000.00, 'completed', NOW());
-                """)
 
-        conn.commit()
-        cursor.close()
+def init_database():
+    # Base.metadata.create_all(bind=POOL)
+    seed_data()
 
-def test_db():
 
-    data_list=[
-        {'new_order_id':10001,"old_order_id":'1'},
-        {'new_order_id':10002,"old_order_id":'2'},
-        {'new_order_id':10003,"old_order_id":'3'},
-    ]
+def seed_data():
+    from app.models.user import Role, Permission, role_permissions
 
-    alter_sql="""
-    update  orders set order_id= :new_order_id where order_id= :old_order_id
-    """
+    db = SessionLocal()
 
-    with get_mysql_connection() as conn:
+    try:
+        if db.query(Role).first():
+            return
 
-        conn.execute(text(alter_sql),data_list)
+        # 创建权限
+        permissions_data = [
+            ('chat:send', '发送消息'),
+            ('chat:stream', '流式对话'),
+            ('history:read', '查看历史对话'),
+            ('history:delete', '删除历史对话'),
+            ('session:manage', '管理会话'),
+            ('user:manage', '管理用户'),
+        ]
+        perm_ids = {}
+        for name, desc in permissions_data:
+            p = Permission(name=name, description=desc)
+            db.add(p)
+            db.flush()
+            perm_ids[name] = p.id
 
-        conn.commit()
+        # 创建角色
+        roles_data = [
+            ('admin', '管理员'),
+            ('user', '普通用户'),
+            ('viewer', '只读用户'),
+        ]
+        role_ids = {}
+        for name, desc in roles_data:
+            r = Role(name=name, description=desc)
+            db.add(r)
+            db.flush()
+            role_ids[name] = r.id
+
+        # 角色-权限关联
+        admin_perms = list(perm_ids.values())
+        user_perms = [perm_ids[p] for p in
+                      ['chat:send', 'chat:stream', 'history:read', 'history:delete', 'session:manage']]
+        viewer_perms = [perm_ids['history:read']]
+
+        for perm_id in admin_perms:
+            db.execute(role_permissions.insert().values(role_id=role_ids['admin'], permission_id=perm_id))
+        for perm_id in user_perms:
+            db.execute(role_permissions.insert().values(role_id=role_ids['user'], permission_id=perm_id))
+        for perm_id in viewer_perms:
+            db.execute(role_permissions.insert().values(role_id=role_ids['viewer'], permission_id=perm_id))
+        db.commit()
+    finally:
+        db.close()
+
 
 if __name__ == '__main__':
-    test_db()
+    init_database()
+
