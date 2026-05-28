@@ -1,4 +1,5 @@
 from sentence_transformers import CrossEncoder
+from threading import Lock
 
 
 class BGEReranker:
@@ -19,11 +20,14 @@ class BGEReranker:
 
 
 _reranker_model = None
+_reranker_model_lock = Lock()
 
 
 def get_reranker_model():
     global _reranker_model
     if not _reranker_model:
-        _reranker_model = BGEReranker()
+        with _reranker_model_lock:
+            if not _reranker_model:
+                _reranker_model = BGEReranker()
 
     return _reranker_model

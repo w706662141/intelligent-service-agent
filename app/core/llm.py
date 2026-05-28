@@ -2,30 +2,40 @@ from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 import os
+load_dotenv()
+from threading import Lock
 
 _model = None
 _compress_model = None
 _validator_model = None
 _router_model = None
 _xiaomi_model = None
-load_dotenv()
+
+_model_lock = Lock()
+_compress_model_lock = Lock()
+_validator_model_lock = Lock()
+_router_model_lock = Lock()
+_xiaomi_model_lock = Lock()
+
 
 
 def get_model():
     global _model
     if _model is None:
-        _model = ChatOpenAI(
-            max_retries=3,  # ⭐ 重试
-            # model="mistralai/mistral-7b-instruct",
-            # model="baidu/cobuddy:free",
-            # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-            # openai_api_base="https://openrouter.ai/api/v1",
-            model='xiaomi/mimo-v2.5-pro',
-            api_key=os.getenv('XIAOMI_API_KEY'),
-            base_url="https://token-plan-cn.xiaomimimo.com/v1",
-            temperature=0,
+        with _model_lock:
+            if _model is None:
+                _model = ChatOpenAI(
+                    max_retries=3,  # ⭐ 重试
+                    # model="mistralai/mistral-7b-instruct",
+                    # model="baidu/cobuddy:free",
+                    # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+                    # openai_api_base="https://openrouter.ai/api/v1",
+                    model='xiaomi/mimo-v2.5-pro',
+                    api_key=os.getenv('XIAOMI_API_KEY'),
+                    base_url="https://token-plan-cn.xiaomimimo.com/v1",
+                    temperature=0,
 
-        )
+                )
 
     return _model
 
@@ -33,57 +43,65 @@ def get_model():
 def get_compress_model():
     global _compress_model
     if _compress_model is None:
-        _compress_model = ChatOpenAI(
-            max_retries=3,  # ⭐ 重试
-            # model="qwen/qwen3-coder:free",
-            # model="baidu/cobuddy:free",
-            # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-            # openai_api_base="https://openrouter.ai/api/v1",
-            model='xiaomi/mimo-v2.5-pro',
-            api_key=os.getenv('XIAOMI_API_KEY'),
-            base_url="https://token-plan-cn.xiaomimimo.com/v1",
-            temperature=0,
-        )
+        with _compress_model_lock:
+            if _compress_model is None:
+                _compress_model = ChatOpenAI(
+                    max_retries=3,  # ⭐ 重试
+                    # model="qwen/qwen3-coder:free",
+                    # model="baidu/cobuddy:free",
+                    # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+                    # openai_api_base="https://openrouter.ai/api/v1",
+                    model='xiaomi/mimo-v2.5-pro',
+                    api_key=os.getenv('XIAOMI_API_KEY'),
+                    base_url="https://token-plan-cn.xiaomimimo.com/v1",
+                    temperature=0,
+                )
     return _compress_model
 
 
 def get_router_model():
     global _router_model
     if _router_model is None:
-        _router_model = ChatOpenAI(
-            max_retries=3,  # ⭐ 重试
-            # model="qwen/qwen3-coder:free",
-            # model="baidu/cobuddy:free",
-            # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-            # openai_api_base="https://openrouter.ai/api/v1",
-            model='xiaomi/mimo-v2.5-pro',
-            api_key=os.getenv('XIAOMI_API_KEY'),
-            base_url="https://token-plan-cn.xiaomimimo.com/v1",
-            temperature=0,
-        )
+        with _router_model_lock:
+            if _router_model is None:
+                _router_model = ChatOpenAI(
+                    max_retries=3,  # ⭐ 重试
+                    # model="qwen/qwen3-coder:free",
+                    # model="baidu/cobuddy:free",
+                    # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+                    # openai_api_base="https://openrouter.ai/api/v1",
+                    model='xiaomi/mimo-v2.5-pro',
+                    api_key=os.getenv('XIAOMI_API_KEY'),
+                    base_url="https://token-plan-cn.xiaomimimo.com/v1",
+                    temperature=0,
+                )
     return _router_model
 
 
 def get_validator_model():
     global _validator_model
     if not _validator_model:
-        _validator_model = ChatGroq(
-            api_key=os.getenv('GROQ_API_KEY'),
-            model_name="llama-3.3-70b-versatile",
-            temperature=0,
-            max_retries=2,
-        )
+        with _validator_model_lock:
+            if not _validator_model:
+                _validator_model = ChatGroq(
+                    api_key=os.getenv('GROQ_API_KEY'),
+                    model_name="llama-3.3-70b-versatile",
+                    temperature=0,
+                    max_retries=2,
+                )
     return _validator_model
 
 
 def get_xiaomi_model():
     global _xiaomi_model
     if not _xiaomi_model:
-        _xiaomi_model = ChatOpenAI(
-            # model='mimo-v2.5-pro',
-            model='xiaomi/mimo-v2.5-pro',
-            api_key=os.getenv('XIAOMI_API_KEY'),
-            base_url="https://token-plan-cn.xiaomimimo.com/v1",
-            temperature=0,
-        )
+        with _xiaomi_model_lock:
+            if not _xiaomi_model:
+                _xiaomi_model = ChatOpenAI(
+                    # model='mimo-v2.5-pro',
+                    model='xiaomi/mimo-v2.5-pro',
+                    api_key=os.getenv('XIAOMI_API_KEY'),
+                    base_url="https://token-plan-cn.xiaomimimo.com/v1",
+                    temperature=0,
+                )
     return _xiaomi_model

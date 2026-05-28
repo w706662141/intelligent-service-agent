@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, Form, Query, Header
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
-from app.auth.jwt import create_token, verify_token
+from app.auth.jwt import create_token
+from app.auth.permissions import require_permission
+from app.models.user import User
 from app.memory.session_manager import SessionManager
 
 router = APIRouter()
@@ -20,10 +22,10 @@ class ChatResponse(BaseModel):
 def chat(
         question: str = Form(..., description="请输入你的问题"),
         session_id: str = Header(..., alias="X-Session-Id", description="会话ID"),
-        token_payload: dict = Depends(verify_token),
+        current_user: User = require_permission("chat:send"),
 ):
-    user_id = token_payload["sub"]
-    role = token_payload.get("role", "user")
+    user_id = str(current_user.id)
+    role = current_user.roles[0].name if current_user.roles else "user"
 
     session = session_manager.get_or_create(user_id, session_id, role)
     answer = session.executor.run(question)
@@ -34,10 +36,10 @@ def chat(
 def chat_stream(
         question: str = Form(..., description="请输入你的问题"),
         session_id: str = Header(..., alias="X-Session-Id", description="会话ID"),
-        token_payload: dict = Depends(verify_token),
+        current_user: User = require_permission("chat:stream"),
 ):
-    user_id = token_payload["sub"]
-    role = token_payload.get("role", "user")
+    user_id = str(current_user.id)
+    role = current_user.roles[0].name if current_user.roles else "user"
 
     session = session_manager.get_or_create(user_id, session_id, role)
 
@@ -65,8 +67,8 @@ def get_token(user_id: str = Query(...), role: str = Query(default="user")):
 @router.delete("/session")
 def clear_session(
         session_id: str = Header(..., alias="X-Session-Id"),
-        token_payload: dict = Depends(verify_token),
+        current_user: User = require_permission("session:manage"),
 ):
-    user_id = token_payload["sub"]
+    user_id = str(current_user.id)
     removed = session_manager.remove(user_id, session_id)
     return {"user_id": user_id, "session_id": session_id, "cleared": removed}
