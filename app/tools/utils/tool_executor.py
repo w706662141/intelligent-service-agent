@@ -12,7 +12,6 @@ class ToolExecutor:
 
         tool = self.registry.get(tool_name)
 
-        # if "messages" in tool_demo.invoke.__code__.co_varnames:
         if "messages" in inspect.signature(tool.invoke).parameters:
             args['messages'] = messages
 

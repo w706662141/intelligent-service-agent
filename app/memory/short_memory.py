@@ -1,7 +1,6 @@
 
 from typing import Dict, List
 
-
 class ShortTermMemory:
     """
     短期对话记忆（滑动窗口）

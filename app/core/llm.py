@@ -26,13 +26,13 @@ def get_model():
             if _model is None:
                 _model = ChatOpenAI(
                     max_retries=3,  # ⭐ 重试
-                    # model="mistralai/mistral-7b-instruct",
+                    model="mistralai/mistral-7b-instruct",
                     # model="baidu/cobuddy:free",
-                    # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-                    # openai_api_base="https://openrouter.ai/api/v1",
-                    model='xiaomi/mimo-v2.5-pro',
-                    api_key=os.getenv('XIAOMI_API_KEY'),
-                    base_url="https://token-plan-cn.xiaomimimo.com/v1",
+                    openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+                    openai_api_base="https://openrouter.ai/api/v1",
+                    # model='xiaomi/mimo-v2.5-pro',
+                    # api_key=os.getenv('XIAOMI_API_KEY'),
+                    # base_url="https://token-plan-cn.xiaomimimo.com/v1",
                     temperature=0,
 
                 )
@@ -48,12 +48,12 @@ def get_compress_model():
                 _compress_model = ChatOpenAI(
                     max_retries=3,  # ⭐ 重试
                     # model="qwen/qwen3-coder:free",
-                    # model="baidu/cobuddy:free",
-                    # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-                    # openai_api_base="https://openrouter.ai/api/v1",
-                    model='xiaomi/mimo-v2.5-pro',
-                    api_key=os.getenv('XIAOMI_API_KEY'),
-                    base_url="https://token-plan-cn.xiaomimimo.com/v1",
+                    model="baidu/cobuddy:free",
+                    openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+                    openai_api_base="https://openrouter.ai/api/v1",
+                    # model='xiaomi/mimo-v2.5-pro',
+                    # api_key=os.getenv('XIAOMI_API_KEY'),
+                    # base_url="https://token-plan-cn.xiaomimimo.com/v1",
                     temperature=0,
                 )
     return _compress_model
@@ -67,12 +67,12 @@ def get_router_model():
                 _router_model = ChatOpenAI(
                     max_retries=3,  # ⭐ 重试
                     # model="qwen/qwen3-coder:free",
-                    # model="baidu/cobuddy:free",
-                    # openai_api_key=os.getenv('OPENROUTER_API_KEY'),
-                    # openai_api_base="https://openrouter.ai/api/v1",
-                    model='xiaomi/mimo-v2.5-pro',
-                    api_key=os.getenv('XIAOMI_API_KEY'),
-                    base_url="https://token-plan-cn.xiaomimimo.com/v1",
+                    model="baidu/cobuddy:free",
+                    openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+                    openai_api_base="https://openrouter.ai/api/v1",
+                    # model='xiaomi/mimo-v2.5-pro',
+                    # api_key=os.getenv('XIAOMI_API_KEY'),
+                    # base_url="https://token-plan-cn.xiaomimimo.com/v1",
                     temperature=0,
                 )
     return _router_model
