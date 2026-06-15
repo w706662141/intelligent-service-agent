@@ -37,13 +37,29 @@ export default function App() {
 
   return (
     <>
-      {/* 顶部导航栏 */}
-      <div style={{ position: "fixed", top: 0, right: 0, zIndex: 1000, padding: "8px 16px", background: "rgba(255,255,255,0.9)", backdropFilter: "blur(4px)", borderRadius: "0 0 0 8px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-        <Space>
-          <span style={{ fontWeight: 600 }}>{auth.username}</span>
-          {isAdmin && <span style={{ color: "#faad14", fontSize: 12 }}>[管理员]</span>}
-          <Link to="/chat"><Button size="small" icon={<MessageOutlined />}>聊天</Button></Link>
-          {isAdmin && <Link to="/admin/users"><Button size="small" icon={<SettingOutlined />}>管理</Button></Link>}
+      {/* Top navigation bar */}
+      <div style={{
+        position: "fixed",
+        top: 0,
+        right: 12,
+        zIndex: 1000,
+        padding: "6px 14px",
+        background: "rgba(255,255,255,0.95)",
+        backdropFilter: "blur(8px)",
+        borderRadius: "8px",
+        boxShadow: "0 1px 6px rgba(0,0,0,0.08)",
+      }}>
+        <Space size="small">
+          <span style={{ fontSize: 13, color: "#555" }}>{auth.username}</span>
+          {isAdmin && <span style={{ fontSize: 11, color: "#faad14", background: "#fffbe6", padding: "1px 6px", borderRadius: 4 }}>管理员</span>}
+          <Link to="/chat">
+            <Button size="small" icon={<MessageOutlined />}>聊天</Button>
+          </Link>
+          {isAdmin && (
+            <Link to="/admin/users">
+              <Button size="small" icon={<SettingOutlined />}>管理</Button>
+            </Link>
+          )}
           <Button size="small" danger icon={<LogoutOutlined />} onClick={handleLogout}>退出</Button>
         </Space>
       </div>

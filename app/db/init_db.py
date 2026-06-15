@@ -29,6 +29,10 @@ def seed_data():
         permissions_data = [
             ('chat:send', '发送消息'),
             ('chat:stream', '流式对话'),
+            ('chat:create', '创建会话'),
+            ('chat:list', '查看会话列表'),
+            ('chat:update', '修改会话'),
+            ('chat:delete', '删除会话'),
             ('history:read', '查看历史对话'),
             ('history:delete', '删除历史对话'),
             ('session:manage', '管理会话'),
@@ -63,12 +67,15 @@ def seed_data():
             admin_role.permissions = list(all_perms)
 
         # user: 聊天+历史+会话管理
-        if not user_role.permissions:
-            user_role.permissions = [perm_map[p] for p in
-                                     ['chat:send', 'chat:stream', 'history:read', 'history:delete', 'session:manage']]
+        user_needed = ['chat:send', 'chat:stream', 'chat:create', 'chat:list',
+                       'chat:update', 'chat:delete', 'history:read', 'history:delete',
+                       'session:manage']
+        for p in user_needed:
+            if perm_map[p] not in user_role.permissions:
+                user_role.permissions.append(perm_map[p])
 
         # viewer: 只读
-        if not viewer_role.permissions:
+        if viewer_role and perm_map['history:read'] not in viewer_role.permissions:
             viewer_role.permissions = [perm_map['history:read']]
 
         # 创建默认管理员账号（如果不存在）

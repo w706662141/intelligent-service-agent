@@ -1,7 +1,7 @@
 import json
+from typing import List, Dict
 
 from app.core.llm import get_validator_model, get_model
-from app.core.llm_factory import create_llm
 from app.tools.utils.registery import create_default_registry
 from app.tools.utils.tool_executor import ToolExecutor
 from app.core.pipeline import Pipeline
@@ -12,6 +12,16 @@ from app.plan.planner import Planner
 from app.router.mode_router import Router
 from app.content.context_builder import format_history_for_llm
 from app.config.agent_log import log_event
+from dataclasses import dataclass
+
+
+@dataclass
+class ExecutionContext:
+    """执行上下文 - Executor 需要的运行时信息"""
+    session_id: str
+    role: str
+    history: List[Dict[str, str]]
+    max_turns: int = 20
 
 
 class ReActPlanExecutor:
@@ -23,16 +33,16 @@ class ReActPlanExecutor:
         self.llm = get_model()
         self.summarize_llm = get_validator_model()
         self.pipeline = Pipeline(role)
-        self.memory = ShortTermMemory()
+        # self.memory = ShortTermMemory()
         self.plan_executor = PlanExecutor(self.registry, self.executor, self.llm)
         self.planner = Planner(self.llm, self.tool_manager.get_tools_by_role(role))
         self.router = Router(self.tool_manager)
         self.role = role
         self.summarize_llm = get_validator_model()
 
-    def rewrite(self, question):
+    def rewrite(self, question, history):
 
-        history = format_history_for_llm(self.memory.get())
+        # history = format_history_for_llm(self.memory.get())
 
         prompt = f"""
         
@@ -58,42 +68,42 @@ class ReActPlanExecutor:
 
         return self.llm.invoke(prompt).content
 
-    def simple_run(self, question):
-        return self.llm.invoke(question).content
-
-    def react_run(self, question):
-        history = format_history_for_llm(self.memory.get())
-        return self.pipeline.run(question, history=history)
-
-    def plan_run(self, question):
-        history = format_history_for_llm(self.memory.get())
-        plan = self.planner.plan(question)
-        result = self.plan_executor.execute(plan, history)
-
-        prompt = f"""
-        用户问题:
-        {question}
-
-        执行结果(JSON):
-        {json.dumps(result["results"], ensure_ascii=False, default=str, indent=2)}
-
-        请给出最终答案
-        """
-
-        if not result.get("success"):
-            return f"执行失败: {result}"
-        # 3️⃣ 汇总结果（可选）
-
-        final_answer = self.summarize_llm.invoke(prompt)
-
-        return final_answer
+    # def simple_run(self, question):
+    #     return self.llm.invoke(question).content
+    #
+    # def react_run(self, question):
+    #     history = format_history_for_llm(self.memory.get())
+    #     return self.pipeline.run(question, history=history)
+    #
+    # def plan_run(self, question):
+    #     history = format_history_for_llm(self.memory.get())
+    #     plan = self.planner.plan(question)
+    #     result = self.plan_executor.execute(plan, history)
+    #
+    #     prompt = f"""
+    #     用户问题:
+    #     {question}
+    #
+    #     执行结果(JSON):
+    #     {json.dumps(result["results"], ensure_ascii=False, default=str, indent=2)}
+    #
+    #     请给出最终答案
+    #     """
+    #
+    #     if not result.get("success"):
+    #         return f"执行失败: {result}"
+    #     # 3️⃣ 汇总结果（可选）
+    #
+    #     final_answer = self.summarize_llm.invoke(prompt)
+    #
+    #     return final_answer
 
     def _stream_react_run(self, question, history):
         full_answer = ""
         for chunk in self.pipeline.run(question, history=history):
             full_answer += chunk
             yield chunk
-        self.memory.add(self.role, full_answer)
+        # self.memory.add(self.role, full_answer)
 
     def _stream_plan_run(self, question, history):
         plan = self.planner.plan(question)
@@ -108,7 +118,7 @@ class ReActPlanExecutor:
             text = chunk.content
             full_answer += text
             yield text
-        self.memory.add(self.role, self.normalize_output(full_answer))
+        # self.memory.add(self.role, self.normalize_output(full_answer))
 
     def normalize_output(self, res):
         if hasattr(res, 'content'):
@@ -117,11 +127,14 @@ class ReActPlanExecutor:
             res = res.replace('最终答案', '').strip()
         return res
 
-    def run(self, question: str):
+    def run(self, question: str, context: ExecutionContext):
+
+        history = format_history_for_llm(context.history)
         print('question', question)
-        question = self.rewrite(question)
+        question = self.rewrite(question, history)
         print('rewrite_question', question)
-        history = format_history_for_llm(self.memory.get())
+        # history = format_history_for_llm(self.memory.get())
+
         router_res = self.router.route(self.role, question, history)
         log_event(
             request_id='11111111',
@@ -136,7 +149,7 @@ class ReActPlanExecutor:
             for chunk in self.llm.stream(question):
                 full_answer += chunk.content
                 yield chunk.content
-            self.memory.add(self.role, full_answer)
+            # self.memory.add(self.role, full_answer)
             # result = self.simple_run(question)
         elif router_res == 'TOOL':
             log_event(

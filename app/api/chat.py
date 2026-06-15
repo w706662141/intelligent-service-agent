@@ -1,58 +1,57 @@
 import json
+from typing import Optional, List
 
-from fastapi import APIRouter, Depends, Form, Query, Header
+from fastapi import APIRouter, Form, Query, Header, Depends
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
-
+from app.agent.executor import ReActPlanExecutor
 from app.auth.jwt import create_token
 from app.auth.permissions import require_permission
 from app.models.user import User
-from app.memory.session_manager import SessionManager
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db.init_db import get_db
+from app.services.chat_service import ChatService, build_chat_service
+from app.memory.memory_manager import MemoryManager
+from app.services.message_service import MessageService
 
-router = APIRouter()
-
-session_manager = SessionManager(expire_seconds=1800)
-
-
-class ChatResponse(BaseModel):
-    answer: str
-
-
-@router.post("/chat", response_model=ChatResponse)
-def chat(
-        question: str = Form(..., description="请输入你的问题"),
-        session_id: str = Header(..., alias="X-Session-Id", description="会话ID"),
-        current_user: User = require_permission("chat:send"),
-):
-    user_id = str(current_user.id)
-    role = current_user.roles[0].name if current_user.roles else "user"
-
-    session = session_manager.get_or_create(user_id, session_id, role)
-    answer = session.executor.run(question)
-    return {"answer": answer}
+router = APIRouter(
+    prefix="/chat",
+    tags=["Chat"])
 
 
-@router.post('/chat/stream')
+# ==================== 请求模型 ====================
+
+class DeleteMessagesRequest(BaseModel):
+    message_ids: Optional[List[int]] = None
+
+
+class UpdateSessionTitleRequest(BaseModel):
+    title: str
+
+
+@router.post('/stream')
 def chat_stream(
         question: str = Form(..., description="请输入你的问题"),
-        session_id: str = Header(..., alias="X-Session-Id", description="会话ID"),
+        conversation_id: int = Form(...),
         current_user: User = require_permission("chat:stream"),
+        db: AsyncSession = Depends(get_db)
 ):
-    user_id = str(current_user.id)
     role = current_user.roles[0].name if current_user.roles else "user"
+    chat_service = build_chat_service(db, role)
 
-    session = session_manager.get_or_create(user_id, session_id, role)
-
-    def event_generator():
-        for chunk in session.executor.run(question):
+    async def event_generator():
+        for chunk in chat_service.chat(conversation_id, question):
             # SSE 格式：data: xxx\n\n
-            yield f"data: {json.dumps({'content': chunk}, ensure_ascii=False)}\n\n"
+            yield f"data:" \
+                  f"{json.dumps({'content': chunk}, ensure_ascii=False)}" \
+                  f"\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         event_generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={"Cache-Control": "no-cache",
+                 "X-Accel-Buffering": "no"},
 
     )
 
@@ -62,13 +61,3 @@ def get_token(user_id: str = Query(...), role: str = Query(default="user")):
     """模拟签发 token（测试用，正式环境由认证服务提供）"""
     token = create_token(user_id, role)
     return {"token": token, "user_id": user_id, "role": role}
-
-
-@router.delete("/session")
-def clear_session(
-        session_id: str = Header(..., alias="X-Session-Id"),
-        current_user: User = require_permission("session:manage"),
-):
-    user_id = str(current_user.id)
-    removed = session_manager.remove(user_id, session_id)
-    return {"user_id": user_id, "session_id": session_id, "cleared": removed}

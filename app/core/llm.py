@@ -10,6 +10,7 @@ _compress_model = None
 _validator_model = None
 _router_model = None
 _xiaomi_model = None
+_test_model=None
 
 _model_lock = Lock()
 _compress_model_lock = Lock()
@@ -105,3 +106,16 @@ def get_xiaomi_model():
                     temperature=0,
                 )
     return _xiaomi_model
+
+
+def get_test_model():
+    global _test_model
+    if not _test_model:
+        if not _test_model:
+            _test_model = ChatOpenAI(
+                model='gpt-oss-120b:free',
+                openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+                openai_api_base="https://openrouter.ai/api/v1",
+                temperature=0,
+            )
+    return _test_model

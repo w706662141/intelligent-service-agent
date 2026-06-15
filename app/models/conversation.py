@@ -1,7 +1,7 @@
 from typing import List
 
 from app.db.base import Base
-from sqlalchemy import  Integer, String, DateTime, Text
+from sqlalchemy import Integer, String, DateTime, Text
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,7 +31,7 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     conversation: Mapped["Conversation"] = relationship(
-        primaryjoin= 'foreign(Message.conversation_id) == Conversation.id',
+        primaryjoin='foreign(Message.conversation_id) == Conversation.id',
         back_populates="messages"
 
     )

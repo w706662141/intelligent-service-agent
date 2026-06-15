@@ -70,12 +70,6 @@ class Pipeline:
 
                 if sig in called_signatures:
 
-                    # return {
-                    #     "success": False,
-                    #     "error_type": "REPEAT_BLOCKED",
-                    #     "message": "多次重复查询未果，任务已终止",
-                    #     "data": None
-                    # }
                     yield "处理失败，请稍后再试"
                     return
                 called_signatures.add(sig)
